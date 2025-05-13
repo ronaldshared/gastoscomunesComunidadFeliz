@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador de Boletas de Gastos Comunes</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .upload-container {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .file-input {
+            margin-bottom: 15px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .results-container {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #3498db;
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        tr:hover {
+            background-color: #e3f2fd;
+        }
+        
+        .summary {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        
+        .summary h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .total {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #3498db;
+        }
+        
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .loading-container {
+            display: none;
+            margin: 20px 0;
+        }
+        
+        .loading-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            height: 20px;
+            background-color: #3498db;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3498db;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .file-name {
+            margin-top: 10px;
+            font-style: italic;
+            color: #7f8c8d;
+        }
+        
+        .file-upload-progress {
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .upload-progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            height: 10px;
+            margin-top: 5px;
+        }
+        
+        .upload-progress {
+            height: 100%;
+            background-color: #2ecc71;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .filter-summary {
+            background-color: #e8f4fc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .filter-summary h4 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 1px solid #3498db;
+            padding-bottom: 8px;
+        }
+        
+        .filter-summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        /* Estilos para los gráficos */
+        .charts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .chart-toggle {
+            display: flex;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #3498db;
+        }
+        
+        .chart-toggle button {
+            flex: 1;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .chart-toggle button.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: #f5f5f5;
+            transition: all 0.3s;
+        }
+        
+        .legend-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            th, td {
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+            
+            .actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            #categoryFilter {
+                width: 100%;
+            }
+            
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Analizador de Boletas de Gastos Comunes</h1>
+    
+    <div class="upload-container">
+        <h2>Subir Boleta</h2>
+        <p>Seleccione el archivo PDF de la boleta de gastos comunes para analizar:</p>
+        
+        <div class="file-input">
+            <input type="file" id="pdfFile" accept=".pdf">
+            <div class="file-name" id="fileName"></div>
+            <div class="file-upload-progress" id="fileUploadProgress">
+                <div>Subiendo archivo: <span id="uploadPercent">0</span>%</div>
+                <div class="upload-progress-bar">
+                    <div class="upload-progress" id="uploadProgress"></div>
+                </div>
+            </div>
+        </div>
+        
+        <button id="analyzeBtn" disabled>Analizar Boleta</button>
+        
+        <div class="loading-container" id="loadingContainer">
+            <div class="loading-header">
+                <div>Procesando documento...</div>
+                <div>Paso <span id="currentStep">1</span> de <span id="totalSteps">5</span></div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div id="stepDescription">Inicializando análisis...</div>
+            <div class="spinner"></div>
+        </div>
+    </div>
+    
+    <div class="results-container" id="resultsContainer">
+        <h2>Resultados del Análisis</h2>
+        
+        <div class="actions">
+            <button id="downloadCsv">Descargar como CSV</button>
+            <div>
+                <button id="filterBtn">Filtrar por Categoría</button>
+                <select id="categoryFilter" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                    <option value="all">Todas las categorías</option>
+                    <option value="Gastos Administración">Gastos Administración</option>
+                    <option value="Mantención">Mantención</option>
+                    <option value="Mejoramientos">Mejoramientos</option>
+                    <option value="Remuneraciones">Remuneraciones</option>
+                    <option value="Reparación">Reparación</option>
+                    <option value="Seguro">Seguro</option>
+                    <option value="Servicios Básicos">Servicios Básicos</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-summary" id="filterSummary">
+            <h4>Resumen de la categoría seleccionada</h4>
+            <div class="filter-summary-item">
+                <span>Total Monto a Pagar:</span>
+                <span id="filterAmount">$0</span>
+            </div>
+            <div class="filter-summary-item">
+                <span>Total Monto Comunidad:</span>
+                <span id="filterCommunityAmount">$0</span>
+            </div>
+        </div>
+        
+        <!-- Sección de Gráficos -->
+        <div class="charts-container">
+            <div class="chart-card">
+                <h3>Distribución de Gastos por Categoría</h3>
+                <canvas id="categoryChart"></canvas>
+                <div class="chart-legend" id="categoryLegend"></div>
+            </div>
+            
+            <div class="chart-card">
+                <h3>Comparativa de Montos</h3>
+                <div class="chart-toggle">
+                    <button class="active" data-type="amount">Monto a Pagar</button>
+                    <button data-type="community">Monto Comunidad</button>
+                </div>
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>Ítem</th>
+                        <th>Descripción</th>
+                        <th>N° Doc</th>
+                        <th>Fecha</th>
+                        <th>Monto a Pagar</th>
+                        <th>Monto Comunidad</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <!-- Los datos se insertarán aquí -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="summary">
+            <h3>Resumen por Categoría</h3>
+            <div id="summaryContent">
+                <!-- El resumen se insertará aquí -->
+            </div>
+            <div class="total" id="totalAmount">
+                <!-- El total general se insertará aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Incluir Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Datos de ejemplo (simulando el análisis del PDF)
+        const sampleData = {
+            fileName: "Boleta gasto común [marzo-2025].pdf",
+            items: [
+                { item: "Gastos Administración", description: "Comunidad Feliz Spa Software plataforma", docNumber: "155439", date: "01-04-2025", amount: 1863, communityAmount: 77608 },
+                { item: "Gastos Administración", description: "Servicios De Administración L Plaza Spas", docNumber: "4", date: "26-03-2025", amount: 11286, communityAmount: 470250 },
+                { item: "Gastos Administración", description: "Cartero Correspondencia Marzo 2025", docNumber: "", date: "09-04-2025", amount: 240, communityAmount: 10000 },
+                { item: "Mantención", description: "Carlos Zuñiga Mantención de jardines 2 visitas", docNumber: "545", date: "01-04-2025", amount: 1800, communityAmount: 75000 },
+                { item: "Mantención", description: "Ingeniería Y Servicios Hidrobrox Ltda. Mantención preventiva Sala Calderas", docNumber: "7359", date: "01-04-2025", amount: 4856, communityAmount: 202343 },
+                { item: "Mantención", description: "Megaelevadores Mantención Ascensores", docNumber: "4151", date: "01-04-2025", amount: 7759, communityAmount: 323279 },
+                { item: "Mantención", description: "Sumix Spa Artículos de Aseo, Cafetería y Escritorio", docNumber: "492", date: "12-03-2025", amount: 3002, communityAmount: 125068 },
+                { item: "Mantención", description: "Copec Compra petroleo grupo electrogeno", docNumber: "", date: "09-04-2025", amount: 1200, communityAmount: 50000 },
+                { item: "Mantención", description: "Jaime Quezada Mantención grupo", docNumber: "III2", date: "09-04-2025", amount: 840, communityAmount: 35000 },
+                { item: "Mantención", description: "Jaime Quezada Mantención equipo de presurización edificio", docNumber: "III4", date: "09-04-2025", amount: 840, communityAmount: 35000 },
+                { item: "Mejoramientos", description: "Jaime Quezada PROYECTO: APLICACIÓN DE CAPA PROTECTORA EN TECHO", docNumber: "288", date: "25-10-2024", amount: 2360, communityAmount: 98335 },
+                { item: "Mejoramientos", description: "Ingeniería Y Servicios Hidrobrox Ltda. Cuota 11 de 12 Trabajo Cambios Caldera N°2", docNumber: "", date: "09-04-2025", amount: 20713, communityAmount: 863033 },
+                { item: "Remuneraciones", description: "Víctor Javier Astudillo Fernandez Liquidación de marzo", docNumber: "", date: "04-04-2025", amount: 10844, communityAmount: 451819 },
+                { item: "Remuneraciones", description: "Pedro Benedicto Bizama López Liquidación de marzo", docNumber: "", date: "04-04-2025", amount: 9653, communityAmount: 402229 },
+                { item: "Remuneraciones", description: "Luis Alberto Carrasco Alvarez Liquidación de marzo", docNumber: "", date: "04-04-2025", amount: 14845, communityAmount: 618525 },
+                { item: "Remuneraciones", description: "Doris Abigail Macarlupu Orla Liquidación de marzo", docNumber: "", date: "04-04-2025", amount: 12381, communityAmount: 515856 },
+                { item: "Remuneraciones", description: "Nestor José Yañez Chavez Liquidación de marzo", docNumber: "", date: "04-04-2025", amount: 15120, communityAmount: 630009 },
+                { item: "Remuneraciones", description: "Previred S.A. Cotizaciones previsionales personal Marzo", docNumber: "20250307879 2-7", date: "01-04-2025", amount: 15391, communityAmount: 641282 },
+                { item: "Remuneraciones", description: "Dayana Valero Reemplazo Conserjería 5 días domingos", docNumber: "52", date: "26-03-2025", amount: 5400, communityAmount: 225000 },
+                { item: "Remuneraciones", description: "July Turnbalobos Reemplazo Conserjería 1 día, Vacaciones", docNumber: "53", date: "26-03-2025", amount: 720, communityAmount: 30000 },
+                { item: "Reparación", description: "Megaelevadores Provisión Abono Deuda Reparación Ascensor", docNumber: "", date: "09-04-2025", amount: 12000, communityAmount: 500000 },
+                { item: "Seguro", description: "Renta Nacional Seguro Espacios comunes 8.07 UF cuota 1", docNumber: "", date: "01-04-2025", amount: 7154, communityAmount: 298100 },
+                { item: "Servicios Básicos", description: "Aguas Andinas S.A Aguas Andinas N° Cliente 1632283-0", docNumber: "", date: "01-04-2025", amount: 1847, communityAmount: 76970 },
+                { item: "Servicios Básicos", description: "Aguas Andinas S.A Aguas Andinas N° Cliente 1632246-4", docNumber: "", date: "01-04-2025", amount: 867, communityAmount: 36142 },
+                { item: "Servicios Básicos", description: "Enel Distribución Consumo Electrico N° cliente 1668953-k", docNumber: "342597337", date: "01-04-2025", amount: 14553, communityAmount: 606391 },
+                { item: "Servicios Básicos", description: "Movistar S.A. Servicio de Internet Móvil", docNumber: "", date: "31-03-2025", amount: 442, communityAmount: 18416 },
+                { item: "Servicios Básicos", description: "Metrogas S.A. Consumo gas cliente 900194943", docNumber: "", date: "09-04-2025", amount: 10409, communityAmount: 433695 }
+            ],
+            summary: {
+                "Gastos Administración": 557858,
+                "Mantención": 845690,
+                "Mejoramientos": 961368,
+                "Remuneraciones": 3514720,
+                "Reparación": 500000,
+                "Seguro": 298100,
+                "Servicios Básicos": 1171614
+            },
+            total: 7849350
+        };
+
+        // Elementos del DOM
+        const pdfFileInput = document.getElementById('pdfFile');
+        const fileNameDisplay = document.getElementById('fileName');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingContainer = document.getElementById('loadingContainer');
+        const currentStepDisplay = document.getElementById('currentStep');
+        const totalStepsDisplay = document.getElementById('totalSteps');
+        const stepDescriptionDisplay = document.getElementById('stepDescription');
+        const progressBar = document.getElementById('progressBar');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsBody = document.getElementById('resultsBody');
+        const summaryContent = document.getElementById('summaryContent');
+        const totalAmount = document.getElementById('totalAmount');
+        const downloadCsvBtn = document.getElementById('downloadCsv');
+        const filterBtn = document.getElementById('filterBtn');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const fileUploadProgress = document.getElementById('fileUploadProgress');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const uploadPercent = document.getElementById('uploadPercent');
+        const filterSummary = document.getElementById('filterSummary');
+        const filterAmount = document.getElementById('filterAmount');
+        const filterCommunityAmount = document.getElementById('filterCommunityAmount');
+
+        // Variables para los gráficos
+        let categoryChart, comparisonChart;
+        let currentChartType = 'amount';
+
+        // Pasos del proceso de análisis
+        const analysisSteps = [
+            { step: 1, description: "Cargando archivo PDF..." },
+            { step: 2, description: "Extrayendo texto del documento..." },
+            { step: 3, description: "Identificando categorías de gastos..." },
+            { step: 4, description: "Procesando detalles de cada ítem..." },
+            { step: 5, description: "Generando resumen y totales..." }
+        ];
+
+        // Event listeners
+        pdfFileInput.addEventListener('change', handleFileSelect);
+        analyzeBtn.addEventListener('click', analyzeDocument);
+        downloadCsvBtn.addEventListener('click', downloadCsv);
+        filterBtn.addEventListener('click', filterTable);
+        categoryFilter.addEventListener('change', updateFilterSummary);
+
+        // Formatear moneda
+        function formatCurrency(amount) {
+            return '$' + amount.toLocaleString('es-CL');
+        }
+
+        // Manejar selección de archivo con progreso de carga
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Simular progreso de carga del archivo
+                fileUploadProgress.style.display = 'block';
+                let progress = 0;
+                const uploadInterval = setInterval(() => {
+                    progress += Math.random() * 10;
+                    if (progress >= 100) {
+                        progress = 100;
+                        clearInterval(uploadInterval);
+                        fileNameDisplay.textContent = file.name;
+                        analyzeBtn.disabled = false;
+                    }
+                    uploadProgress.style.width = `${progress}%`;
+                    uploadPercent.textContent = Math.floor(progress);
+                }, 100);
+            } else {
+                fileUploadProgress.style.display = 'none';
+                fileNameDisplay.textContent = '';
+                analyzeBtn.disabled = true;
+            }
+        }
+
+        // Simular análisis del documento con indicadores de progreso
+        function analyzeDocument() {
+            loadingContainer.style.display = 'block';
+            analyzeBtn.disabled = true;
+            fileUploadProgress.style.display = 'none';
+            
+            // Configurar pasos del proceso
+            totalStepsDisplay.textContent = analysisSteps.length;
+            
+            // Iniciar simulación de proceso
+            let currentStep = 0;
+            const totalSteps = analysisSteps.length;
+            
+            const processInterval = setInterval(() => {
+                if (currentStep >= totalSteps) {
+                    clearInterval(processInterval);
+                    displayResults(sampleData);
+                    loadingContainer.style.display = 'none';
+                    resultsContainer.style.display = 'block';
+                    return;
+                }
+                
+                // Actualizar indicadores de progreso
+                const stepInfo = analysisSteps[currentStep];
+                currentStepDisplay.textContent = stepInfo.step;
+                stepDescriptionDisplay.textContent = stepInfo.description;
+                progressBar.style.width = `${(stepInfo.step / totalSteps) * 100}%`;
+                
+                currentStep++;
+            }, 1000);
+        }
+
+        // Mostrar resultados en la tabla
+        function displayResults(data) {
+            // Limpiar tabla
+            resultsBody.innerHTML = '';
+            
+            // Llenar tabla con los datos
+            data.items.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.item}</td>
+                    <td>${item.description}</td>
+                    <td>${item.docNumber || '-'}</td>
+                    <td>${item.date}</td>
+                    <td>${formatCurrency(item.amount)}</td>
+                    <td>${formatCurrency(item.communityAmount)}</td>
+                `;
+                resultsBody.appendChild(row);
+            });
+            
+            // Mostrar resumen
+            summaryContent.innerHTML = '';
+            for (const [category, amount] of Object.entries(data.summary)) {
+                const summaryItem = document.createElement('div');
+                summaryItem.className = 'summary-item';
+                summaryItem.innerHTML = `
+                    <span>${category}</span>
+                    <span>${formatCurrency(amount)}</span>
+                `;
+                summaryContent.appendChild(summaryItem);
+            }
+            
+            // Mostrar total
+            totalAmount.innerHTML = `Total General: ${formatCurrency(data.total)}`;
+            
+            // Inicializar gráficos
+            initCharts();
+        }
+
+        // Inicializar gráficos
+        function initCharts() {
+            const ctx1 = document.getElementById('categoryChart').getContext('2d');
+            const ctx2 = document.getElementById('comparisonChart').getContext('2d');
+            
+            // Datos para los gráficos
+            const categories = Object.keys(sampleData.summary);
+            const amounts = categories.map(cat => 
+                sampleData.items.filter(item => item.item === cat).reduce((sum, item) => sum + item.amount, 0)
+            );
+            const communityAmounts = categories.map(cat => 
+                sampleData.items.filter(item => item.item === cat).reduce((sum, item) => sum + item.communityAmount, 0)
+            );
+            
+            // Colores para las categorías
+            const backgroundColors = [
+                '#3498db', '#2ecc71', '#e74c3c', '#f39c12', 
+                '#9b59b6', '#1abc9c', '#d35400'
+            ];
+            
+            // Gráfico circular de categorías
+            categoryChart = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: amounts,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    onClick: (e, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            const category = categories[index];
+                            categoryFilter.value = category;
+                            filterTable();
+                        }
+                    }
+                }
+            });
+            
+            // Gráfico de comparación
+            comparisonChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        label: 'Monto a Pagar',
+                        data: amounts,
+                        backgroundColor: backgroundColors.map(c => `${c}80`),
+                        borderColor: backgroundColors,
+                        borderWidth: 1
+                    }, {
+                        label: 'Monto Comunidad',
+                        data: communityAmounts,
+                        backgroundColor: backgroundColors.map(c => `${c}40`),
+                        borderColor: backgroundColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Actualizar gráfico de comparación al cambiar tipo
+            document.querySelectorAll('.chart-toggle button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelector('.chart-toggle button.active').classList.remove('active');
+                    this.classList.add('active');
+                    currentChartType = this.dataset.type;
+                    updateComparisonChart();
+                });
+            });
+            
+            // Crear leyenda interactiva
+            createLegend(categories, backgroundColors);
+        }
+
+        // Actualizar el gráfico de comparación
+        function updateComparisonChart() {
+            const categories = Object.keys(sampleData.summary);
+            const data = categories.map(cat => {
+                const items = sampleData.items.filter(item => item.item === cat);
+                if (currentChartType === 'amount') {
+                    return items.reduce((sum, item) => sum + item.amount, 0);
+                } else {
+                    return items.reduce((sum, item) => sum + item.communityAmount, 0);
+                }
+            });
+            
+            comparisonChart.data.datasets[0].data = data;
+            comparisonChart.data.datasets[0].label = currentChartType === 'amount' 
+                ? 'Monto a Pagar' 
+                : 'Monto Comunidad';
+            comparisonChart.update();
+        }
+
+        // Crear leyenda interactiva
+        function createLegend(categories, colors) {
+            const legendContainer = document.getElementById('categoryLegend');
+            legendContainer.innerHTML = '';
+            
+            categories.forEach((category, i) => {
+                const legendItem = document.createElement('div');
+                legendItem.className = 'legend-item';
+                legendItem.innerHTML = `
+                    <span class="legend-color" style="background: ${colors[i]}"></span>
+                    <span>${category}</span>
+                `;
+                
+                legendItem.addEventListener('click', () => {
+                    categoryFilter.value = category;
+                    filterTable();
+                });
+                
+                legendContainer.appendChild(legendItem);
+            });
+        }
+
+        // Filtrar tabla por categoría
+        function filterTable() {
+            const selectedCategory = categoryFilter.value;
+            const rows = resultsBody.getElementsByTagName('tr');
+            
+            for (let row of rows) {
+                const categoryCell = row.cells[0];
+                if (selectedCategory === 'all' || categoryCell.textContent === selectedCategory) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+            
+            updateFilterSummary();
+        }
+
+        // Actualizar el resumen del filtro
+        function updateFilterSummary() {
+            const selectedCategory = categoryFilter.value;
+            
+            if (selectedCategory === 'all') {
+                filterSummary.style.display = 'none';
+                return;
+            }
+            
+            filterSummary.style.display = 'block';
+            
+            // Calcular totales para la categoría seleccionada
+            let totalAmount = 0;
+            let totalCommunityAmount = 0;
+            
+            sampleData.items.forEach(item => {
+                if (item.item === selectedCategory) {
+                    totalAmount += item.amount;
+                    totalCommunityAmount += item.communityAmount;
+                }
+            });
+            
+            filterAmount.textContent = formatCurrency(totalAmount);
+            filterCommunityAmount.textContent = formatCurrency(totalCommunityAmount);
+        }
+
+        // Descargar datos como CSV
+        function downloadCsv() {
+            const rows = [];
+            const headers = ["Ítem", "Descripción", "N° Doc", "Fecha", "Monto a Pagar", "Monto Comunidad"];
+            rows.push(headers.join(','));
+            
+            const tableRows = resultsBody.getElementsByTagName('tr');
+            for (let row of tableRows) {
+                if (row.style.display === 'none') continue;
+                
+                const cells = row.cells;
+                const rowData = [];
+                for (let i = 0; i < cells.length; i++) {
+                    rowData.push(cells[i].textContent);
+                }
+                rows.push(rowData.join(','));
+            }
+            
+            // Agregar resumen
+            rows.push('\nResumen por Categoría');
+            const summaryItems = summaryContent.getElementsByClassName('summary-item');
+            for (let item of summaryItems) {
+                const spans = item.getElementsByTagName('span');
+                rows.push(`${spans[0].textContent},${spans[1].textContent}`);
+            }
+            
+            rows.push(`\nTotal General,${totalAmount.textContent.replace('Total General: ', '')}`);
+            
+            const csvContent = rows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `gastos_comunes_${new Date().toISOString().slice(0,10)}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
